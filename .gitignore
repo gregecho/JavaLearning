@@ -1,0 +1,13 @@
+*.DS_Store
+bin
+target
+.classpath
+.project
+.settings
+.metadata
+.recommenders
+src/main/webapp/META-INF
+.idea
+*.iml
+src/main/webapp/static/components
+test-output/

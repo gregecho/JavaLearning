@@ -73,7 +73,7 @@ protected <T> T getDefaultStrategy(ApplicationContext context, Class<T> strategy
 ````
 ### 3.2 请求处理(request handling) ###
 DispatcherServlet继承关系如图所示：
-![DispatcherServlet继承关系](/images/DispatcherServlet.jpg)
+![DispatcherServlet继承关系](images/DispatcherServlet.jpg)
 HttpServlet是一个处理不同请求类型的抽象类，可以处理：doGet (GET request), doPost (POST), doPut (PUT), doDelete (DELETE), doTrace (TRACE), doHead (HEAD), doOptions (OPTIONS)。FrameworkServlet重写了这些方法，将所有的请求分发到processRequest(HttpServletRequest request, HttpServletResponse response)方法。processRequest是protected和final级别的方法，它构造了LocaleContext 和 ServletRequestAttributes对象，这两个对象都可以从RequestContextHolder对象访问。
 ````java
 @Override

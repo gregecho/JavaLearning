@@ -25,200 +25,345 @@
 ### 2. DisplatcherServlet _执行过程_ ###
 从前一章节可以看到，前端控制器模式有自己的执行过程，负责处理请求并将视图返回到客户端：
 >+ 客户端发送请求，请求会首先到达spring默认的控制器DisplatcherServlet。
->+ 
->+
->+    
+>+ DisplatcherServlet使用请求映射来确定具体处理该request的controller。 _org.springframework.web.servlet.HandlerMapping_会返回一个 _org.springframework.web.servlet.HandlerExecutionChain_的实例。该实例包含了一组可以在controller调用前或调用后执行的拦截器。关于spring拦截器可以参考[Spring拦截器](http://www.waitingforcode.com/spring-framework/spring-dispatcherservlet-lifecycle/read#)
+>+ 系统会执行根据配置文件找到的前拦截器及controller。controller处理完请求后，DisplatcherServlet会执行所有的后拦截器。最后DisplatcherServlet会接收到controller返回的ModelAndView实例。
+>+ DisplatcherServlet将接收到的视图名称发送给视图解析器，视图解析器将决定客户端将看到的具体视图。
+>+ 最后视图将以response的形式发挥到客户端。   
 
-他有着足以让你跪拜的人生经历：    
-+ **14岁**参与RSS 1.0规格标准的制订。     
-+ **2004**年入读**斯坦福**，之后退学。   
-+ **2005**年创建[Infogami](http://infogami.org/)，之后与[Reddit](http://www.reddit.com/)合并成为其合伙人。   
-+ **2010**年创立求进会（Demand Progress），积极参与禁止网络盗版法案（SOPA）活动，最终该提案**居然**被撤回。   
-+ **2011**年7月19日，因被控从MIT和JSTOR下载480万篇学术论文并以免费形式上传于网络被捕。     
-+ **2013**年1月自杀身亡。    
+### 3. 什么是DisplatcherServlet ###   
+### 3.1 策略初始化(Strategies initialization) ###
+DispatcherServlet类位于org.springframework.web.servlet包中，并且实现了该包中FrameworkServlet抽象类。包含了一些私有字段例如，解析器（本地化，视图，异常和文件上传），handler映射（handler mapping）以及handler适配器。DispatcherServlet中关键的方法是initStrategies，该方法在onRefresh方法中调用。onRefresh方法在FrameworkServlet类中的initServletBean和initWebApplicationContext中调用。initServletBean产生了一个application级别的上下文以及所有提供的策略。每一个策略代表了可以被DispatcherServlet用来处理请求的对象。
 
-![Aaron Swartz](https://github.com/younghz/Markdown/raw/master/resource/Aaron_Swartz.jpg) 
-
-天才都有早逝的归途（又是一位**犹太人**）。
-
-### 3. _为什么_要使用它？ ###
-+ 它是易读（_看起开舒服_）、易写（_语法简单_）、易更改**纯文本**。处处体现着**极简主义**的影子。
-+ 兼容HTML，可以转换为HTML格式发布。
-+ 跨平台使用。
-+ 越来越多的网站支持Markdown。
-+ 更方便清晰的组织你的电子邮件。（Markdown-here, Airmail）
-+ 摆脱Word（我不是认真的）。
- 
-### 4. _怎么_使用？ ###
-如果不算**扩展**，Markdown的语法绝对**简单**到让你爱不释手。
-
-废话太多，下面正文，Markdown语法主要分为如下几大部分：
-**标题**，**段落**，**区块引用**，**代码区块**，**强调**，**列表**，**分割线**，**链接**，**图片**，**反斜杠 `\`**，**符号'`'**。
-
-#### 4.1 标题 ####
-两种形式：  
-1）使用`=`和`-`标记一级和二级标题。
-> 一级标题   
-> `=========`   
-> 二级标题    
-> `---------`
-  
-效果：
-> 一级标题   
-> =========   
-> 二级标题
-> ---------  
-
-2）使用`#`，可表示1-6级标题。
-> \# 一级标题   
-> \## 二级标题   
-> \### 三级标题   
-> \#### 四级标题   
-> \##### 五级标题   
-> \###### 六级标题    
-
-效果：
-> # 一级标题   
-> ## 二级标题   
-> ### 三级标题   
-> #### 四级标题   
-> ##### 五级标题   
-> ###### 六级标题 
-
-#### 4.2 段落 ####
-段落的前后要有空行，所谓的空行是指没有文字内容。若想在段内强制换行的方式是使用**两个以上**空格加上回车（引用中换行省略回车）。
-
-#### 4.3 区块引用 ####
-在段落的每行或者只在第一行使用符号`>`,还可使用多个嵌套引用，如：
-> \> 区块引用  
-> \>> 嵌套引用  
-
-效果：
-> 区块引用  
->> 嵌套引用 
-
-#### 4.4 代码区块 ####
-代码区块的建立是在每行加上4个空格或者一个制表符（如同写代码一样）。如    
-普通段落：
-
-void main()    
-{    
-    printf("Hello, Markdown.");    
-}    
-
-代码区块：
-
-    void main()
-    {
-        printf("Hello, Markdown.");
+````java
+/**
+ * Initialize the strategy objects that this servlet uses.
+ * May be overridden in subclasses in order to initialize further strategy objects.
+ */
+protected void initStrategies(ApplicationContext context) {
+    initMultipartResolver(context);
+    initLocaleResolver(context);
+    initThemeResolver(context);
+    initHandlerMappings(context);
+    initHandlerAdapters(context);
+    initHandlerExceptionResolvers(context);
+    initRequestToViewNameTranslator(context);
+    initViewResolvers(context);
+    initFlashMapManager(context);
+}
+````
+**注意：** 如果一个strategy不存在，会抛出NoSuchBeanDefinitionException并且会使用默认的strategy来代替。如果默认的strategy在DispatcherServler.properties文件中没有定义，会抛出BeanInitializationException异常。
+````java
+/**
+ * Return the default strategy object for the given strategy interface.
+ * The default implementation delegates to {@link #getDefaultStrategies},
+ * expecting a single object in the list.
+ * @param context the current WebApplicationContext
+ * @param strategyInterface the strategy interface
+ * @return the corresponding strategy object
+ * @see #getDefaultStrategies
+ */
+protected <T> T getDefaultStrategy(ApplicationContext context, Class<T> strategyInterface) {
+    List<T> strategies = getDefaultStrategies(context, strategyInterface);
+    if (strategies.size() != 1) {
+        throw new BeanInitializationException(
+                "DispatcherServlet needs exactly 1 strategy for interface [" + strategyInterface.getName() + "]");
     }
+    return strategies.get(0);
+}
+````
+### 3.2 请求处理(request handling) ###
+DispatcherServlet继承关系如图所示：
+![DispatcherServlet继承关系](/images/DispatcherServlet继承关系.jpg)
+HttpServlet是一个处理不同请求类型的抽象类，可以处理：doGet (GET request), doPost (POST), doPut (PUT), doDelete (DELETE), doTrace (TRACE), doHead (HEAD), doOptions (OPTIONS)。FrameworkServlet重写了这些方法，将所有的请求分发到processRequest(HttpServletRequest request, HttpServletResponse response)方法。processRequest是protected和final级别的方法，它构造了LocaleContext 和 ServletRequestAttributes对象，这两个对象都可以从RequestContextHolder对象访问。
+````java
+@Override
+protected final void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+ 
+    processRequest(request, response);
+}
+ 
+/**
+ * Process this request, publishing an event regardless of the outcome.
+ * The actual event handling is performed by the abstract
+ * {@link #doService} template method.
+ */
+protected final void processRequest(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+ 
+    long startTime = System.currentTimeMillis();
+    Throwable failureCause = null;
+ 
+    LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();
+    LocaleContext localeContext = buildLocaleContext(request);
+ 
+    RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();
+    ServletRequestAttributes requestAttributes = buildRequestAttributes(request, response, previousAttributes);
+ 
+    WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+    asyncManager.registerCallableInterceptor(FrameworkServlet.class.getName(), new RequestBindingInterceptor());
+ 
+    initContextHolders(request, localeContext, requestAttributes);
+ 
+    try {
+        doService(request, response);
+    }
+    catch (ServletException ex) {
+        failureCause = ex;
+        throw ex;
+    }
+    catch (IOException ex) {
+        failureCause = ex;
+        throw ex;
+    }
+    catch (Throwable ex) {
+        failureCause = ex;
+        throw new NestedServletException("Request processing failed", ex);
+    }
+ 
+    finally {
+        resetContextHolders(request, previousLocaleContext, previousAttributes);
+        if (requestAttributes != null) {
+            requestAttributes.requestCompleted();
+        }
+ 
+        if (logger.isDebugEnabled()) {
+            if (failureCause != null) {
+                this.logger.debug("Could not complete request", failureCause);
+            }
+            else {
+                if (asyncManager.isConcurrentHandlingStarted()) {
+                    logger.debug("Leaving response open for concurrent processing");
+                }
+                else {
+                    this.logger.debug("Successfully completed request");
+                }
+            }
+        }
+ 
+        publishRequestHandledEvent(request, startTime, failureCause);
+    }
+}
+````
+从processRequest的代码可以看出，在调用了initContextHolders方法后调用了doService方法。doService方法在请求中加入了额外的信息(flash maps, context information),然后调用protected void doDispatch(HttpServletRequest request, HttpServletResponse response)方法。
 
-**注意**:需要和普通段落之间存在空行。
+The most important part of doDispatch method is handler retrieving. doDispatch calls getHandler() method which analyzes processed requests and returns HandlerExecutionChain instance. This instance contains handler mapping and interceptors. The next thing done by DispatcherServlet is applying pre-handler interceptors (applyPreHandle()). If at least one of them returns false, the request processing stops. Otherwise, the servlet uses handler adapter associated to handler mapping to generate the view object.
 
-#### 4.5 强调 ####
-在强调内容两侧分别加上`*`或者`_`，如：
-> \*斜体\*，\_斜体\_    
-> \*\*粗体\*\*，\_\_粗体\_\_
+doDispatch调用getHandler()方法分析请求并返回相应的处理器实例(HandlerExecutionChain)。处理器实例包含handler映射及拦截器。接着DispatcherServlet会调用已经注册的拦截器。如果任何一个拦截器返回false，那停止请求处理。如果拦截器调用成功，处理器会根据映射关系生成对应的view对象。
+````java
+/**
+ * Process the actual dispatching to the handler.
+ * The handler will be obtained by applying the servlet's HandlerMappings in order.
+ * The HandlerAdapter will be obtained by querying the servlet's installed HandlerAdapters
+ * to find the first that supports the handler class.
+ * All HTTP methods are handled by this method. It's up to HandlerAdapters or handlers
+ * themselves to decide which methods are acceptable.
+ * @param request current HTTP request
+ * @param response current HTTP response
+ * @throws Exception in case of any kind of processing failure
+ */
+protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    HttpServletRequest processedRequest = request;
+    HandlerExecutionChain mappedHandler = null;
+    boolean multipartRequestParsed = false;
+ 
+    WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+ 
+    try {
+        ModelAndView mv = null;
+        Exception dispatchException = null;
+ 
+        try {
+            processedRequest = checkMultipart(request);
+            multipartRequestParsed = processedRequest != request;
+ 
+            // Determine handler for the current request.
+            // 获取处理该请求的处理器
+            mappedHandler = getHandler(processedRequest);
+            if (mappedHandler == null || mappedHandler.getHandler() == null) {
+                noHandlerFound(processedRequest, response);
+                return;
+            }
+ 
+            // Determine handler adapter for the current request.
+            // 确定该请求的适配器
+            HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+ 
+            // Process last-modified header, if supported by the handler.
+            String method = request.getMethod();
+            boolean isGet = "GET".equals(method);
+            if (isGet || "HEAD".equals(method)) {
+                long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
+                if (logger.isDebugEnabled()) {
+                    String requestUri = urlPathHelper.getRequestUri(request);
+                    logger.debug("Last-Modified value for [" + requestUri + "] is: " + lastModified);
+                }
+                if (new ServletWebRequest(request, response).checkNotModified(lastModified) && isGet) {
+                    return;
+                }
+            }
+ 
+            if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+                return;
+            }
+ 
+            try {
+                // Actually invoke the handler.
+                mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+            }
+            finally {
+                if (asyncManager.isConcurrentHandlingStarted()) {
+                    return;
+                }
+            }
+ 
+            applyDefaultViewName(request, mv);
+            mappedHandler.applyPostHandle(processedRequest, response, mv);
+        }
+        catch (Exception ex) {
+            dispatchException = ex;
+        }
+        processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
+    }
+    catch (Exception ex) {
+        triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
+    }
+    catch (Error err) {
+        triggerAfterCompletionWithError(processedRequest, response, mappedHandler, err);
+    }
+    finally {
+        if (asyncManager.isConcurrentHandlingStarted()) {
+            // Instead of postHandle and afterCompletion
+            mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);
+            return;
+        }
+        // Clean up any resources used by a multipart request.
+        if (multipartRequestParsed) {
+            cleanupMultipart(processedRequest);
+        }
+    }
+}
+````
 
-效果：
-> *斜体*，_斜体_    
-> **粗体**，__粗体__
+### 3.3 视图解析(View resolving) ###
+在获取到ModelAndView实例之后，doDispatch方法调用private void applyDefaultViewName(HttpServletRequest request, ModelAndView mv)方法来获取对应的视图名称。
 
-#### 4.6 列表 ####
-使用`·`、`+`、或`-`标记无序列表，如：
-> \-（+\*） 第一项
-> \-（+\*） 第二项
-> \- （+\*）第三项
+最后会执行所有注册的后拦截器方法。
 
-**注意**：标记后面最少有一个_空格_或_制表符_。若不在引用区块中，必须和前方段落之间存在空行。
+### 3.4 视图渲染(view rendering) ###
+至此，servlet知道哪一个视图需要被渲染，视图将通过processDispatchResult方法进行最后的处理-视图渲染。
 
-效果：
-> + 第一项
-> + 第二项
-> + 第三项
+首先，processDispatchResult会检查传入的参数没有异常，如果有任何异常将会只想到错误页面。如果没有异常，该方法会检查ModelAndView实例，如果ModelAndView实例不是null，方法会调用render方法protected void render(ModelAndView mv, HttpServletRequest request, HttpServletResponse response)。
 
-有序列表的标记方式是将上述的符号换成数字,并辅以`.`，如：
-> 1 . 第一项   
-> 2 . 第二项    
-> 3 . 第三项    
+render方法会根据定义的视图策略寻找对应的视图类实例，视图类实例负责展示的内容。
+````java
+/**
+ * Handle the result of handler selection and handler invocation, which is
+ * either a ModelAndView or an Exception to be resolved to a ModelAndView.
+ */
+private void processDispatchResult(HttpServletRequest request, HttpServletResponse response,
+        HandlerExecutionChain mappedHandler, ModelAndView mv, Exception exception) throws Exception {
+ 
+    boolean errorView = false;
+ 
+    if (exception != null) {
+        if (exception instanceof ModelAndViewDefiningException) {
+            logger.debug("ModelAndViewDefiningException encountered", exception);
+            mv = ((ModelAndViewDefiningException) exception).getModelAndView();
+        }
+        else {
+            Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);
+            mv = processHandlerException(request, response, handler, exception);
+            errorView = (mv != null);
+        }
+    }
+ 
+    // Did the handler return a view to render?
+    if (mv != null && !mv.wasCleared()) {
+        render(mv, request, response);
+        if (errorView) {
+            WebUtils.clearErrorRequestAttributes(request);
+        }
+    }
+    else {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Null ModelAndView returned to DispatcherServlet with name '" + getServletName() +
+                    "': assuming HandlerAdapter completed request handling");
+        }
+    }
+ 
+    if (WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) {
+        // Concurrent handling started during a forward
+        return;
+    }
+ 
+    if (mappedHandler != null) {
+        mappedHandler.triggerAfterCompletion(request, response, null);
+    }
+}
+ 
+/**
+ * Render the given ModelAndView.
+ * This is the last stage in handling a request. It may involve resolving the view by name.
+ * @param mv the ModelAndView to render
+ * @param request current HTTP servlet request
+ * @param response current HTTP servlet response
+ * @throws ServletException if view is missing or cannot be resolved
+ * @throws Exception if there's a problem rendering the view
+ */
+protected void render(ModelAndView mv, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    // Determine locale for request and apply it to the response.
+    Locale locale = this.localeResolver.resolveLocale(request);
+    response.setLocale(locale);
+ 
+    View view;
+    if (mv.isReference()) {
+        // We need to resolve the view name.
+        view = resolveViewName(mv.getViewName(), mv.getModelInternal(), locale, request);
+        if (view == null) {
+            throw new ServletException(
+                    "Could not resolve view with name '" + mv.getViewName() + "' in servlet with name '" +
+                            getServletName() + "'");
+        }
+    }
+    else {
+        // No need to lookup: the ModelAndView object contains the actual View object.
+        view = mv.getView();
+        if (view == null) {
+            throw new ServletException("ModelAndView [" + mv + "] neither contains a view name nor a " +
+                    "View object in servlet with name '" + getServletName() + "'");
+        }
+    }
+ 
+    // Delegate to the View object for rendering.
+    if (logger.isDebugEnabled()) {
+        logger.debug("Rendering view [" + view + "] in DispatcherServlet with name '" + getServletName() + "'");
+    }
+    try {
+        view.render(mv.getModelInternal(), request, response);
+    }
+    catch (Exception ex) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Error rendering view [" + view + "] in DispatcherServlet with name '"
+                    + getServletName() + "'", ex);
+        }
+        throw ex;
+    }
+}
+````
 
-效果：
-> 1. 第一项
-> 2. 第二项
-> 3. 第三项
+### 4. 自定义DisplatcherServlet ###
 
-#### 4.7 分割线 ####
-分割线最常使用就是三个或以上`*`，还可以使用`-`和`_`。
 
-#### 4.8 链接 ####
-链接可以由两种形式生成：**行内式**和**参考式**。    
-**行内式**：
-> \[younghz的Markdown库\]\(https:://github.com/younghz/Markdown "Markdown"\)。
+原文：
+> [Spring DispatcherServlet lifecycle][1]
 
-效果：
-> [younghz的Markdown库](https:://github.com/younghz/Markdown "Markdown")。
+[1]:http://www.waitingforcode.com/spring-framework/spring-dispatcherservlet-lifecycle/read
 
-**参考式**：
-> \[younghz的Markdown库1\]\[1\]    
-> \[younghz的Markdown库2\]\[2\]    
-> \[1\]:https:://github.com/younghz/Markdown "Markdown"    
-> \[2\]:https:://github.com/younghz/Markdown "Markdown"    
+参考：
+> [SpringMVC DispatcherServlet初始化过程][1]    
 
-效果：
-> [younghz的Markdown库1][1]    
-> [younghz的Markdown库2][2]
+[1]: http://blog.csdn.net/tiantiandjava/article/details/47663853
 
-[1]: https:://github.com/younghz/Markdown "Markdown"
-[2]: https:://github.com/younghz/Markdown "Markdown"
-
-**注意**：上述的`[1]:https:://github.com/younghz/Markdown "Markdown"`不出现在区块中。
-
-#### 4.9 图片 ####
-添加图片的形式和链接相似，只需在链接的基础上前方加一个`！`。
-#### 4.10 反斜杠`\` ####
-相当于**反转义**作用。使符号成为普通符号。
-#### 4.11 符号'`' ####
-起到标记作用。如：
->\`ctrl+a\`
-
-效果：
->`ctrl+a`    
-
-#### 5. 都_谁_在用？####
-Markdown的使用者：
-+ GitHub
-+ 简书
-+ Stack Overflow
-+ Apollo
-+ Moodle
-+ Reddit
-+ 等等
-
-#### 6. 感觉有意思？趁热打铁，推荐几个_工具_。 ####
-+ **Chrome**下的stackedit插件可以离线使用，很爽。也不用担心平台受限。
-在线的dillinger.io算是评价好的了，可是不能离线使用。    
-+ **Windowns**下的MarkdownPad也用过，不过免费版的体验不是很好。    
-+ **Mac**下的Mou是国人贡献的，口碑很好。推荐。    
-+ **Linux**下的ReText不错。    
-
-**其实在对语法了如于心的话，直接用编辑器就可以了，脑子里满满的都是格式化好的文本啊。**
-我现在使用`马克飞象` + `Markdown-here`，先编辑好，然后一键格式化，挺方便。
-
-****
-**注意**：不同的Markdown解释器或工具对相应语法（扩展语法）的解释效果不尽相同，具体可参见工具的使用说明。
-虽然有人想出面搞一个所谓的标准化的Markdown，[没想到还惹怒了健在的创始人John Gruber]
-(http://blog.codinghorror.com/standard-markdown-is-now-common-markdown/)。
-****
-以上基本是所有traditonal markdown的语法。
-
-### 其它： ###
-列表的使用(非traditonal markdown)：
-
-用`|`表示表格纵向边界，表头和表内容用`-`隔开，并可用`:`进行对齐设置，两边都有`:`则表示居中，若不加`:`则默认左对齐。
-
-|代码库                              |链接                                |
-|:------------------------------------:|------------------------------------|
-|MarkDown                              |[https://github.com/younghz/Markdown](https://github.com/younghz/Markdown "Markdown")|
-|moos-young                            |[https://github.com/younghz/moos-young](https://github.com/younghz/moos-young "tianchi")|
-
-关于其它扩展语法可参见具体工具的使用说明。
+### TODO
+* [ ] 适配器模式在spring MVC中的运用--- HandlerAdapter

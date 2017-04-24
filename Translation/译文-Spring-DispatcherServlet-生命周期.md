@@ -360,7 +360,7 @@ protected void render(ModelAndView mv, HttpServletRequest request, HttpServletRe
 参考：
 > [SpringMVC DispatcherServlet初始化过程][2]    
 
-[1]: http://blog.csdn.net/tiantiandjava/article/details/47663853
+[2]: http://blog.csdn.net/tiantiandjava/article/details/47663853
 
 ### TODO
 * [ ] 适配器模式在spring MVC中的运用--- HandlerAdapter

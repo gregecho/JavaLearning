@@ -358,7 +358,7 @@ protected void render(ModelAndView mv, HttpServletRequest request, HttpServletRe
 [1]:http://www.waitingforcode.com/spring-framework/spring-dispatcherservlet-lifecycle/read
 
 参考：
-> [SpringMVC DispatcherServlet初始化过程][1]    
+> [SpringMVC DispatcherServlet初始化过程][2]    
 
 [1]: http://blog.csdn.net/tiantiandjava/article/details/47663853
 

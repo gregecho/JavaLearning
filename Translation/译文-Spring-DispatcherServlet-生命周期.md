@@ -9,13 +9,13 @@
 
 ## 正文 ##
 ### 1. 前端控制器模式（front controller pattern) ###
-在学习DispatcherServlet之前，我们需要了解一些它所基于的机制的理论知识。DispatcherServlet所基于的最关键的机制就是前端控制器模式。
+在学习DispatcherServlet之前，我们需要了解一些它所基于的机制的理论知识。DispatcherServlet中最关键的机制就是前端控制器模式。
 
 前端控制器模式为web程序提供了一个统一的入口。该入口可以统一处理例如：资源安全，语言切换，session管理，缓存等功能。
 
 因此，更加技术的来讲，前端控制器模式会处理所有的request请求，每个请求会被分析确定那个控制器和方法来进行处理。
 
-5个重要的部分组成了前端控制器模式：
+前端控制器模式由5个重要的部分组成：
 >+ 客户端：发送请求
 >+ 控制器: 应用程序的入口，处理所有请求
 >+ 分发器(dispatcher): 确定将那个试图返回到客户端
@@ -172,8 +172,7 @@ protected void doDispatch(HttpServletRequest request, HttpServletResponse respon
     try {
         ModelAndView mv = null;
         Exception dispatchException = null;
- 
-        try {
+        try {
             processedRequest = checkMultipart(request);
             multipartRequestParsed = processedRequest != request;
  

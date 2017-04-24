@@ -147,8 +147,6 @@ protected final void processRequest(HttpServletRequest request, HttpServletRespo
 ````
 从processRequest的代码可以看出，在调用了initContextHolders方法后调用了doService方法。doService方法在请求中加入了额外的信息(flash maps, context information),然后调用protected void doDispatch(HttpServletRequest request, HttpServletResponse response)方法。
 
-The most important part of doDispatch method is handler retrieving. doDispatch calls getHandler() method which analyzes processed requests and returns HandlerExecutionChain instance. This instance contains handler mapping and interceptors. The next thing done by DispatcherServlet is applying pre-handler interceptors (applyPreHandle()). If at least one of them returns false, the request processing stops. Otherwise, the servlet uses handler adapter associated to handler mapping to generate the view object.
-
 doDispatch调用getHandler()方法分析请求并返回相应的处理器实例(HandlerExecutionChain)。处理器实例包含handler映射及拦截器。接着DispatcherServlet会调用已经注册的拦截器。如果任何一个拦截器返回false，那停止请求处理。如果拦截器调用成功，处理器会根据映射关系生成对应的view对象。
 ````java
 /**
